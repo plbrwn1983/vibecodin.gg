@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude remote-control:*)",
+      "Bash(npm --version)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(cp /tmp/vibecodin-scaffold/.gitignore /Users/paulbrown/Documents/Claude/Projects/vibecodin.gg/)",
+      "Bash(cp /tmp/vibecodin-scaffold/eslint.config.mjs /Users/paulbrown/Documents/Claude/Projects/vibecodin.gg/)",
+      "Bash(cp /tmp/vibecodin-scaffold/next-env.d.ts /Users/paulbrown/Documents/Claude/Projects/vibecodin.gg/)",
+      "Bash(cp /tmp/vibecodin-scaffold/next.config.ts /Users/paulbrown/Documents/Claude/Projects/vibecodin.gg/)",
+      "Bash(cp /tmp/vibecodin-scaffold/package.json /Users/paulbrown/Documents/Claude/Projects/vibecodin.gg/)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest:*)"
+    ]
+  }
+}
