@@ -8,6 +8,7 @@ import { TagList } from "@/components/tag-list";
 import { UpvoteButton } from "@/components/upvote-button";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Discussion } from "@/components/discussion";
+import { InstallSection } from "@/components/install-section";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({
@@ -206,6 +207,9 @@ export default async function ContributionPage({
           )}
         </div>
       </div>
+
+      {/* Install */}
+      <InstallSection contributionId={c.id} type={c.type} />
 
       {/* Readme body */}
       {c.raw_readme && (
