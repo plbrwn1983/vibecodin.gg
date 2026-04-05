@@ -25,7 +25,8 @@ export function NominateHub() {
     setSending(false);
 
     if (!res.ok) {
-      setErrorMsg("Failed to send nomination. Please try again.");
+      const data = await res.json().catch(() => null);
+      setErrorMsg(data?.error ?? "Failed to send nomination. Please try again.");
       return;
     }
 
