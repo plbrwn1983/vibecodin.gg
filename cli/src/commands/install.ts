@@ -11,16 +11,12 @@ import {
   getManifest,
   saveManifest,
   ensureInstallDir,
+  SUPABASE_URL,
 } from "../lib/config.js";
 import { success, error, warn, info } from "../lib/display.js";
 
 export async function install(idArg: string) {
-  // Check auth
   const auth = getAuth();
-  if (!auth) {
-    error('Authentication required. Run "vibecodin auth" first.');
-    process.exit(1);
-  }
 
   // Parse id@version (version pinning noted as future consideration)
   const id = idArg.split("@")[0];
@@ -45,22 +41,40 @@ export async function install(idArg: string) {
     warn(`${id} v${existing.version} is installed. Updating to v${c.version}...`);
   }
 
-  // Fetch files from storage
+  // Fetch files — try Storage first, fall back to web API download
   info(`Fetching files...`);
-  const files = await getContributionFiles(id, c.type);
+  let files = await getContributionFiles(id, c.type);
+  let downloadedFromApi = false;
 
   if (files.length === 0) {
-    error("No files found in storage for this contribution.");
-    info("The contribution may not have been synced yet.");
-    process.exit(1);
+    // Fallback: download reconstructed README from the web API
+    info("Storage files not available, downloading from platform...");
+    try {
+      const res = await fetch(`https://vibecodin.gg/api/download/${id}`);
+      if (res.ok) {
+        const content = Buffer.from(await res.arrayBuffer());
+        const installDir = ensureInstallDir(id);
+        fs.writeFileSync(path.join(installDir, "README.md"), content);
+        downloadedFromApi = true;
+      }
+    } catch {
+      // Fall through to error below
+    }
+
+    if (!downloadedFromApi) {
+      error("No files available for this contribution.");
+      process.exit(1);
+    }
   }
 
-  // Write files locally
-  const installDir = ensureInstallDir(id);
-  for (const file of files) {
-    const content = await downloadFile(file.url);
-    const filePath = path.join(installDir, file.name);
-    fs.writeFileSync(filePath, content);
+  // Write files from Storage (if not already written via API fallback)
+  if (!downloadedFromApi) {
+    const installDir = ensureInstallDir(id);
+    for (const file of files) {
+      const content = await downloadFile(file.url);
+      const filePath = path.join(installDir, file.name);
+      fs.writeFileSync(filePath, content);
+    }
   }
 
   // Check for dependency warnings
@@ -105,11 +119,14 @@ export async function install(idArg: string) {
   };
   saveManifest(manifest);
 
-  // Record install in Supabase
-  await recordInstall(id, c.version);
+  // Record install in Supabase (only if authenticated)
+  if (auth) {
+    await recordInstall(id, c.version);
+  }
 
+  const fileCount = downloadedFromApi ? 1 : files.length;
   success(
     `Installed ${c.name} (${c.type}) v${c.version} → .claude/skills/${id}/`
   );
-  info(`${files.length} file${files.length === 1 ? "" : "s"} written.`);
+  info(`${fileCount} file${fileCount === 1 ? "" : "s"} written.`);
 }
