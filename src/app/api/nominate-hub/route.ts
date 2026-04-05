@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   const { error } = await resend.emails.send({
     from: "vibecodin.gg <onboarding@resend.dev>",
-    to: "plbrwn1983@gmail.com",
+    to: "paul.n.brown@icloud.com",
     subject: `Hub Nomination: ${name}`,
     text: `Hub Name: ${name}\n\nDescription: ${description}\n\nWhy this hub should exist:\n${reason}`,
   });
