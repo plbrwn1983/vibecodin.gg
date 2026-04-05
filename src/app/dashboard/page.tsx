@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUserSubscriptions } from "@/lib/supabase/queries";
+import { getHubBySlug } from "@/lib/hubs";
 
 export const metadata = { title: "Dashboard — vibecodin.gg" };
 
@@ -17,6 +20,9 @@ export default async function DashboardPage() {
     user.user_metadata?.user_name ??
     user.user_metadata?.preferred_username ??
     user.email;
+
+  const subscriptions = await getUserSubscriptions();
+  const hasSubscriptions = subscriptions.length > 0;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
@@ -42,9 +48,40 @@ export default async function DashboardPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Follow hubs and sub-domains to get updates on new contributions.
           </p>
-          <p className="mt-4 text-xs text-muted-foreground italic">
-            No subscriptions yet.
-          </p>
+          {hasSubscriptions ? (
+            <ul className="mt-4 space-y-2">
+              {subscriptions
+                .filter((s) => s.scope_type === "hub")
+                .map((s) => {
+                  const hub = getHubBySlug(s.scope_value);
+                  return (
+                    <li key={s.scope_value}>
+                      <Link
+                        href={`/hubs/${s.scope_value}`}
+                        className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs hover:bg-muted transition-colors"
+                      >
+                        <span className="font-medium text-foreground">
+                          {hub?.name ?? s.scope_value}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {hub?.subdomains.length ?? 0} subdomains
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+            </ul>
+          ) : (
+            <p className="mt-4 text-xs text-muted-foreground italic">
+              No subscriptions yet.
+            </p>
+          )}
+          <Link
+            href="/hubs"
+            className="mt-4 inline-block rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500 transition-colors"
+          >
+            {hasSubscriptions ? "Explore hubs" : "Subscribe to a hub"}
+          </Link>
         </div>
         <div className="rounded-lg border border-border bg-card p-6">
           <h3 className="text-sm font-medium text-foreground">

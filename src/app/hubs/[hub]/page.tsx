@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { hubs, getHubBySlug } from "@/lib/hubs";
-import { getContributions, type SortKey } from "@/lib/supabase/queries";
+import { getContributions, isSubscribedToHub, type SortKey } from "@/lib/supabase/queries";
 import { getAuthState } from "@/lib/supabase/auth";
 import { ContributionList } from "@/components/contribution-list";
 import { SortControls } from "@/components/sort-controls";
+import { SubscribeButton } from "@/components/subscribe-button";
 import { Badge } from "@/components/ui/badge";
 
 export function generateStaticParams() {
@@ -34,9 +35,10 @@ export default async function HubPage({
   if (!hub) notFound();
 
   const sortKey = (sort as SortKey) || "upvotes";
-  const [items, { isAuthenticated, userVotes }] = await Promise.all([
+  const [items, { isAuthenticated, userVotes }, subscribed] = await Promise.all([
     getContributions({ domain: hub.slug, sort: sortKey }),
     getAuthState(),
+    isSubscribedToHub(hub.slug),
   ]);
 
   return (
@@ -47,7 +49,14 @@ export default async function HubPage({
         </Link>{" "}
         / {hub.name}
       </div>
-      <h1 className="text-2xl font-semibold tracking-tight">{hub.name}</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{hub.name}</h1>
+        <SubscribeButton
+          domain={hub.slug}
+          isSubscribed={subscribed}
+          isAuthenticated={isAuthenticated}
+        />
+      </div>
       <p className="mt-1 text-sm text-muted-foreground">{hub.description}</p>
 
       {/* Subdomain pills */}

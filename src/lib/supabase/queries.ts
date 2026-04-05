@@ -236,3 +236,42 @@ export async function getUserCommentVotes(
 
   return new Set(votes?.map((v) => v.comment_id) ?? []);
 }
+
+export async function isSubscribedToHub(domain: string): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return false;
+
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("scope_type", "hub")
+    .eq("scope_value", domain)
+    .single();
+
+  return !!data;
+}
+
+export async function getUserSubscriptions(): Promise<
+  { scope_type: string; scope_value: string; created_at: string }[]
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select("scope_type, scope_value, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) return [];
+  return data ?? [];
+}

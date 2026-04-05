@@ -39,6 +39,12 @@ export async function Header() {
           {user ? (
             <div className="flex items-center gap-3">
               <Link
+                href="/submit"
+                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Submit
+              </Link>
+              <Link
                 href="/dashboard"
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
