@@ -1,5 +1,6 @@
 import { getHubsWithCounts } from "@/lib/supabase/queries";
 import { HubCard } from "@/components/hub-card";
+import { NominateHub } from "@/components/nominate-hub";
 
 export const revalidate = 60;
 export const metadata = { title: "Hubs — vibecodin.gg" };
@@ -18,6 +19,8 @@ export default async function HubsPage() {
           <HubCard key={hub.slug} hub={hub} count={count} />
         ))}
       </div>
+
+      <NominateHub />
     </div>
   );
 }
