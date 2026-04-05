@@ -47,6 +47,7 @@ export interface Contribution {
   verification_model: string | null;
   upvotes: number;
   usage_count: number;
+  thread_locked?: boolean;
 }
 
 export interface Subdomain {

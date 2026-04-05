@@ -1,12 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getHubBySlug, getSubdomainBySlug } from "@/lib/hubs";
-import {
-  getContributionsBySubdomain,
-  sortContributions,
-  type SortKey,
-} from "@/lib/data";
-import { ContributionCard } from "@/components/contribution-card";
+import { getContributions, type SortKey } from "@/lib/supabase/queries";
+import { getAuthState } from "@/lib/supabase/auth";
+import { ContributionList } from "@/components/contribution-list";
 import { SortControls } from "@/components/sort-controls";
 
 export async function generateMetadata({
@@ -18,9 +15,10 @@ export async function generateMetadata({
   const hub = getHubBySlug(hubSlug);
   const sd = getSubdomainBySlug(hubSlug, sdSlug);
   return {
-    title: hub && sd
-      ? `${sd.name} — ${hub.name} — vibecodin.gg`
-      : "Subdomain — vibecodin.gg",
+    title:
+      hub && sd
+        ? `${sd.name} — ${hub.name} — vibecodin.gg`
+        : "Subdomain — vibecodin.gg",
   };
 }
 
@@ -38,10 +36,10 @@ export default async function SubdomainPage({
   if (!hub || !sd) notFound();
 
   const sortKey = (sort as SortKey) || "upvotes";
-  const items = sortContributions(
-    getContributionsBySubdomain(hub.slug, sd.slug),
-    sortKey
-  );
+  const [items, { isAuthenticated, userVotes }] = await Promise.all([
+    getContributions({ domain: hub.slug, subdomain: sd.slug, sort: sortKey }),
+    getAuthState(),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -73,10 +71,12 @@ export default async function SubdomainPage({
           No contributions in this sub-domain yet.
         </p>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((c) => (
-            <ContributionCard key={c.id} contribution={c} />
-          ))}
+        <div className="mt-4">
+          <ContributionList
+            contributions={items}
+            userVotes={userVotes}
+            isAuthenticated={isAuthenticated}
+          />
         </div>
       )}
     </div>

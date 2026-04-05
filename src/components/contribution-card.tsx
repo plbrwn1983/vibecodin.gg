@@ -2,8 +2,17 @@ import Link from "next/link";
 import { Contribution } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { TagList } from "./tag-list";
+import { UpvoteButton } from "./upvote-button";
 
-export function ContributionCard({ contribution }: { contribution: Contribution }) {
+export function ContributionCard({
+  contribution,
+  hasVoted = false,
+  isAuthenticated = false,
+}: {
+  contribution: Contribution;
+  hasVoted?: boolean;
+  isAuthenticated?: boolean;
+}) {
   const c = contribution;
 
   return (
@@ -40,7 +49,12 @@ export function ContributionCard({ contribution }: { contribution: Contribution 
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span title="Upvotes">&#9650; {c.upvotes}</span>
+          <UpvoteButton
+            contributionId={c.id}
+            upvotes={c.upvotes}
+            hasVoted={hasVoted}
+            isAuthenticated={isAuthenticated}
+          />
           <span title="Installs">&#9744; {c.usage_count}</span>
           <span className="hidden sm:inline">
             {c.domain}/{c.subdomain}

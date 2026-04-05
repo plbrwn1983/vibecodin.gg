@@ -1,12 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { hubs, getHubBySlug } from "@/lib/hubs";
-import {
-  getContributionsByDomain,
-  sortContributions,
-  type SortKey,
-} from "@/lib/data";
-import { ContributionCard } from "@/components/contribution-card";
+import { getContributions, type SortKey } from "@/lib/supabase/queries";
+import { getAuthState } from "@/lib/supabase/auth";
+import { ContributionList } from "@/components/contribution-list";
 import { SortControls } from "@/components/sort-controls";
 import { Badge } from "@/components/ui/badge";
 
@@ -37,7 +34,10 @@ export default async function HubPage({
   if (!hub) notFound();
 
   const sortKey = (sort as SortKey) || "upvotes";
-  const items = sortContributions(getContributionsByDomain(hub.slug), sortKey);
+  const [items, { isAuthenticated, userVotes }] = await Promise.all([
+    getContributions({ domain: hub.slug, sort: sortKey }),
+    getAuthState(),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -77,10 +77,12 @@ export default async function HubPage({
           No contributions in this hub yet.
         </p>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((c) => (
-            <ContributionCard key={c.id} contribution={c} />
-          ))}
+        <div className="mt-4">
+          <ContributionList
+            contributions={items}
+            userVotes={userVotes}
+            isAuthenticated={isAuthenticated}
+          />
         </div>
       )}
     </div>

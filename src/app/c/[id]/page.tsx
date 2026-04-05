@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { contributions, getContributionById } from "@/lib/data";
+import { getContributionById, getComments, getUserCommentVotes } from "@/lib/supabase/queries";
+import { getAuthState } from "@/lib/supabase/auth";
 import { getHubBySlug, getSubdomainBySlug } from "@/lib/hubs";
 import { Badge } from "@/components/ui/badge";
 import { TagList } from "@/components/tag-list";
+import { UpvoteButton } from "@/components/upvote-button";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
-
-export function generateStaticParams() {
-  return contributions.map((c) => ({ id: c.id }));
-}
+import { Discussion } from "@/components/discussion";
+import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata({
   params,
@@ -16,8 +16,10 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const c = getContributionById(id);
-  return { title: c ? `${c.name} — vibecodin.gg` : "Contribution — vibecodin.gg" };
+  const c = await getContributionById(id);
+  return {
+    title: c ? `${c.name} — vibecodin.gg` : "Contribution — vibecodin.gg",
+  };
 }
 
 export default async function ContributionPage({
@@ -26,11 +28,23 @@ export default async function ContributionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const c = getContributionById(id);
+  const [c, { isAuthenticated, userVotes }, comments, commentVotes] = await Promise.all([
+    getContributionById(id),
+    getAuthState(),
+    getComments(id),
+    getUserCommentVotes(id),
+  ]);
   if (!c) notFound();
 
   const hub = getHubBySlug(c.domain);
-  const sd = getSubdomainBySlug(c.domain, c.subdomain);
+  const sd = c.subdomain ? getSubdomainBySlug(c.domain, c.subdomain) : null;
+
+  let currentUserId: string | undefined;
+  if (isAuthenticated) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    currentUserId = user?.id;
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
@@ -82,12 +96,14 @@ export default async function ContributionPage({
 
       {/* Signals */}
       <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
-        <span>&#9650; {c.upvotes} upvotes</span>
+        <UpvoteButton
+          contributionId={c.id}
+          upvotes={c.upvotes}
+          hasVoted={userVotes.has(c.id)}
+          isAuthenticated={isAuthenticated}
+        />
         <span>&#9744; {c.usage_count} installs</span>
-        <Link
-          href={`/u/${c.author}`}
-          className="hover:text-foreground"
-        >
+        <Link href={`/u/${c.author}`} className="hover:text-foreground">
           by {c.author}
         </Link>
       </div>
@@ -119,25 +135,30 @@ export default async function ContributionPage({
             <>
               <div className="sm:col-span-2">
                 <span className="text-muted-foreground">Trigger:</span>{" "}
-                <span className="text-foreground">{c.skill_fields.trigger}</span>
+                <span className="text-foreground">
+                  {c.skill_fields.trigger}
+                </span>
               </div>
-              {c.skill_fields.commands && c.skill_fields.commands.length > 0 && (
-                <div className="sm:col-span-2">
-                  <span className="text-muted-foreground">Commands:</span>
-                  <div className="mt-1 space-y-1">
-                    {c.skill_fields.commands.map((cmd) => (
-                      <div key={cmd.name}>
-                        <code className="rounded bg-muted px-1 py-0.5 text-foreground">
-                          {cmd.name}
-                        </code>{" "}
-                        <span className="text-muted-foreground">
-                          — {cmd.description}
-                        </span>
-                      </div>
-                    ))}
+              {c.skill_fields.commands &&
+                c.skill_fields.commands.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <span className="text-muted-foreground">Commands:</span>
+                    <div className="mt-1 space-y-1">
+                      {c.skill_fields.commands.map(
+                        (cmd: { name: string; description: string }) => (
+                          <div key={cmd.name}>
+                            <code className="rounded bg-muted px-1 py-0.5 text-foreground">
+                              {cmd.name}
+                            </code>{" "}
+                            <span className="text-muted-foreground">
+                              — {cmd.description}
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               {c.skill_fields.dependencies.note !==
                 "No dependencies required for this skill to function." && (
                 <div className="sm:col-span-2">
@@ -176,7 +197,7 @@ export default async function ContributionPage({
               <div className="sm:col-span-2">
                 <span className="text-muted-foreground">Behaviors:</span>
                 <ul className="mt-1 list-inside list-disc space-y-0.5 text-foreground">
-                  {c.agent_fields.behaviors.map((b, i) => (
+                  {c.agent_fields.behaviors.map((b: string, i: number) => (
                     <li key={i}>{b}</li>
                   ))}
                 </ul>
@@ -193,13 +214,15 @@ export default async function ContributionPage({
         </div>
       )}
 
-      {/* Discussion placeholder */}
-      <div className="mt-12 rounded-lg border border-border bg-card p-6 text-center">
-        <h3 className="text-sm font-medium text-foreground">Discussion</h3>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Sign in to leave comments, report issues, or suggest improvements.
-        </p>
-      </div>
+      {/* Discussion */}
+      <Discussion
+        contributionId={c.id}
+        comments={comments}
+        isAuthenticated={isAuthenticated}
+        currentUserId={currentUserId}
+        threadLocked={c.thread_locked ?? false}
+        commentVotes={commentVotes}
+      />
     </div>
   );
 }

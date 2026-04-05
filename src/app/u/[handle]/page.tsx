@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
-import { getContributionsByAuthor, sortContributions } from "@/lib/data";
-import { ContributionCard } from "@/components/contribution-card";
+import { getContributionsByAuthor } from "@/lib/supabase/queries";
+import { getAuthState } from "@/lib/supabase/auth";
+import { ContributionList } from "@/components/contribution-list";
 
 export async function generateMetadata({
   params,
@@ -17,7 +18,10 @@ export default async function ProfilePage({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  const items = sortContributions(getContributionsByAuthor(handle), "upvotes");
+  const [items, { isAuthenticated, userVotes }] = await Promise.all([
+    getContributionsByAuthor(handle),
+    getAuthState(),
+  ]);
   if (items.length === 0) notFound();
 
   const totalUpvotes = items.reduce((sum, c) => sum + c.upvotes, 0);
@@ -45,11 +49,11 @@ export default async function ProfilePage({
         <h2 className="mb-4 text-sm font-medium text-muted-foreground">
           Contributions
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {items.map((c) => (
-            <ContributionCard key={c.id} contribution={c} />
-          ))}
-        </div>
+        <ContributionList
+          contributions={items}
+          userVotes={userVotes}
+          isAuthenticated={isAuthenticated}
+        />
       </div>
     </div>
   );

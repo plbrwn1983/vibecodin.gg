@@ -1,0 +1,35 @@
+{
+  "name": "vibecodin",
+  "version": "0.1.0",
+  "description": "CLI assembler for vibecodin.gg — search, install, and manage LLM skills and agents",
+  "type": "module",
+  "bin": {
+    "vibecodin": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "claude",
+    "llm",
+    "skills",
+    "agents",
+    "vibecodin"
+  ],
+  "author": "paulbrown",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
+    "commander": "^13.1.0",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}

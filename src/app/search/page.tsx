@@ -1,10 +1,6 @@
-import {
-  contributions,
-  searchContributions,
-  sortContributions,
-  type SortKey,
-} from "@/lib/data";
-import { ContributionCard } from "@/components/contribution-card";
+import { getContributions, type SortKey } from "@/lib/supabase/queries";
+import { getAuthState } from "@/lib/supabase/auth";
+import { ContributionList } from "@/components/contribution-list";
 import { SearchBar } from "@/components/search-bar";
 import { SortControls } from "@/components/sort-controls";
 
@@ -18,13 +14,17 @@ export default async function SearchPage({
   const { q, sort, type: typeFilter } = await searchParams;
   const sortKey = (sort as SortKey) || "upvotes";
 
-  let results = q ? searchContributions(q) : contributions;
-
-  if (typeFilter === "skill" || typeFilter === "agent") {
-    results = results.filter((c) => c.type === typeFilter);
-  }
-
-  results = sortContributions(results, sortKey);
+  const [results, { isAuthenticated, userVotes }] = await Promise.all([
+    getContributions({
+      query: q || undefined,
+      type:
+        typeFilter === "skill" || typeFilter === "agent"
+          ? typeFilter
+          : undefined,
+      sort: sortKey,
+    }),
+    getAuthState(),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -43,7 +43,8 @@ export default async function SearchPage({
               { key: "skill", label: "Skills" },
               { key: "agent", label: "Agents" },
             ].map((opt) => {
-              const isActive = typeFilter === opt.key || (!typeFilter && !opt.key);
+              const isActive =
+                typeFilter === opt.key || (!typeFilter && !opt.key);
               const params = new URLSearchParams();
               if (q) params.set("q", q);
               if (sort) params.set("sort", sort);
@@ -77,10 +78,12 @@ export default async function SearchPage({
           No contributions found. Try a different search term.
         </p>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map((c) => (
-            <ContributionCard key={c.id} contribution={c} />
-          ))}
+        <div className="mt-4">
+          <ContributionList
+            contributions={results}
+            userVotes={userVotes}
+            isAuthenticated={isAuthenticated}
+          />
         </div>
       )}
     </div>

@@ -1,12 +1,23 @@
-import { hubs } from "@/lib/hubs";
-import { contributions, getStats, getContributionsByDomain, sortContributions } from "@/lib/data";
+import {
+  getContributions,
+  getStats,
+  getHubsWithCounts,
+} from "@/lib/supabase/queries";
+import { getAuthState } from "@/lib/supabase/auth";
 import { HubCard } from "@/components/hub-card";
-import { ContributionCard } from "@/components/contribution-card";
+import { ContributionList } from "@/components/contribution-list";
 import { SearchBar } from "@/components/search-bar";
 
-export default function Home() {
-  const stats = getStats();
-  const topContributions = sortContributions(contributions, "upvotes").slice(0, 6);
+export const revalidate = 60;
+
+export default async function Home() {
+  const [stats, hubsWithCounts, topContributions, { isAuthenticated, userVotes }] =
+    await Promise.all([
+      getStats(),
+      getHubsWithCounts(),
+      getContributions({ sort: "upvotes", limit: 6 }),
+      getAuthState(),
+    ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
@@ -52,12 +63,8 @@ export default function Home() {
           </a>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {hubs.map((hub) => (
-            <HubCard
-              key={hub.slug}
-              hub={hub}
-              count={getContributionsByDomain(hub.slug).length}
-            />
+          {hubsWithCounts.map(({ hub, count }) => (
+            <HubCard key={hub.slug} hub={hub} count={count} />
           ))}
         </div>
       </section>
@@ -73,11 +80,11 @@ export default function Home() {
             Browse all &rarr;
           </a>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {topContributions.map((c) => (
-            <ContributionCard key={c.id} contribution={c} />
-          ))}
-        </div>
+        <ContributionList
+          contributions={topContributions}
+          userVotes={userVotes}
+          isAuthenticated={isAuthenticated}
+        />
       </section>
     </div>
   );
