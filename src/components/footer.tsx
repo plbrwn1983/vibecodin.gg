@@ -15,7 +15,7 @@ export function Footer() {
             Hubs
           </Link>
           <a
-            href="https://github.com/vibecodin/vibecodin.gg"
+            href="https://github.com/plbrwn1983/vibecodin.gg"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-foreground"
