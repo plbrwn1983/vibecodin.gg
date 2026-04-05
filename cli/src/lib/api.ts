@@ -148,7 +148,7 @@ export async function recordInstall(
   if (!auth) return;
 
   const supabase = getClient();
-  await supabase.from("installs").upsert(
+  const { error } = await supabase.from("installs").upsert(
     {
       user_id: auth.user_id,
       contribution_id: contributionId,
@@ -156,4 +156,7 @@ export async function recordInstall(
     },
     { onConflict: "user_id,contribution_id" }
   );
+  if (error) {
+    console.error(`Failed to record install: ${error.message}`);
+  }
 }

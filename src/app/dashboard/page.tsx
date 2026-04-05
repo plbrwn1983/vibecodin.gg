@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getUserSubscriptions } from "@/lib/supabase/queries";
+import { getUserSubscriptions, getUserInstalls } from "@/lib/supabase/queries";
 import { getHubBySlug } from "@/lib/hubs";
 import { CopyCommand } from "@/components/copy-command";
 
@@ -22,8 +22,12 @@ export default async function DashboardPage() {
     user.user_metadata?.preferred_username ??
     user.email;
 
-  const subscriptions = await getUserSubscriptions();
+  const [subscriptions, installs] = await Promise.all([
+    getUserSubscriptions(),
+    getUserInstalls(),
+  ]);
   const hasSubscriptions = subscriptions.length > 0;
+  const hasInstalls = installs.length > 0;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
@@ -89,27 +93,61 @@ export default async function DashboardPage() {
             Installed Contributions
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Track your installed skills and agents by connecting the CLI.
+            {hasInstalls
+              ? `${installs.length} installed skill${installs.length === 1 ? "" : "s"} & agent${installs.length === 1 ? "" : "s"}`
+              : "Track your installed skills and agents by connecting the CLI."}
           </p>
 
-          <div className="mt-4 space-y-3">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1.5">
-                1. Install the CLI
-              </p>
-              <CopyCommand command="npm install -g vibecodin" />
+          {hasInstalls ? (
+            <ul className="mt-4 space-y-2">
+              {installs.map((install) => (
+                <li key={install.contribution_id}>
+                  <Link
+                    href={`/c/${install.contribution_id}`}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                          install.contributions.type === "skill"
+                            ? "bg-blue-500/10 text-blue-400"
+                            : "bg-purple-500/10 text-purple-400"
+                        }`}
+                      >
+                        {install.contributions.type}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {install.contributions.name}
+                      </span>
+                    </div>
+                    <span className="text-muted-foreground">
+                      v{install.version}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-4 space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">
+                  1. Install the CLI
+                </p>
+                <CopyCommand command="npm install -g vibecodin" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">
+                  2. Connect your account
+                </p>
+                <CopyCommand command="vibecodin auth" />
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1.5">
-                2. Connect your account
-              </p>
-              <CopyCommand command="vibecodin auth" />
-            </div>
-          </div>
+          )}
 
           <p className="mt-4 text-xs text-muted-foreground">
-            Once connected, your installs will appear here and count toward
-            community usage stats.
+            {hasInstalls
+              ? "Install more skills & agents via the CLI or download from the site."
+              : "Once connected, your installs will appear here and count toward community usage stats."}
           </p>
         </div>
       </div>

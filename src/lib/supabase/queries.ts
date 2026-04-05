@@ -256,6 +256,43 @@ export async function isSubscribedToHub(domain: string): Promise<boolean> {
   return !!data;
 }
 
+export async function getUserInstalls(): Promise<
+  {
+    contribution_id: string;
+    version: string;
+    installed_at: string;
+    contributions: {
+      id: string;
+      name: string;
+      type: "skill" | "agent";
+      description: string;
+      domain: string;
+    };
+  }[]
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("installs")
+    .select(
+      "contribution_id, version, installed_at, contributions(id, name, type, description, domain)"
+    )
+    .eq("user_id", user.id)
+    .eq("active", true)
+    .order("installed_at", { ascending: false });
+
+  if (error) {
+    console.error("getUserInstalls error:", error.message);
+    return [];
+  }
+  return (data as unknown as Awaited<ReturnType<typeof getUserInstalls>>) ?? [];
+}
+
 export async function getUserSubscriptions(): Promise<
   { scope_type: string; scope_value: string; created_at: string }[]
 > {
