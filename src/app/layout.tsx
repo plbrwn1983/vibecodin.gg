@@ -18,6 +18,20 @@ export const metadata: Metadata = {
   title: "vibecodin.gg",
   description:
     "An open source library of skills and agents for LLMs, organized into business domain hubs.",
+  metadataBase: new URL("https://vibecodin.gg"),
+  openGraph: {
+    title: "vibecodin.gg",
+    description:
+      "Open source skills & agents for LLMs, organized into business domain hubs.",
+    siteName: "vibecodin.gg",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "vibecodin.gg",
+    description:
+      "Open source skills & agents for LLMs, organized into business domain hubs.",
+  },
 };
 
 export default function RootLayout({
