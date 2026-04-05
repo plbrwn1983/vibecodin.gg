@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUserSubscriptions } from "@/lib/supabase/queries";
 import { getHubBySlug } from "@/lib/hubs";
+import { CopyCommand } from "@/components/copy-command";
 
 export const metadata = { title: "Dashboard — vibecodin.gg" };
 
@@ -88,10 +89,27 @@ export default async function DashboardPage() {
             Installed Contributions
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Skills and agents you&apos;ve installed via the assembler.
+            Track your installed skills and agents by connecting the CLI.
           </p>
-          <p className="mt-4 text-xs text-muted-foreground italic">
-            No installs yet.
+
+          <div className="mt-4 space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">
+                1. Install the CLI
+              </p>
+              <CopyCommand command="npm install -g vibecodin" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">
+                2. Connect your account
+              </p>
+              <CopyCommand command="vibecodin auth" />
+            </div>
+          </div>
+
+          <p className="mt-4 text-xs text-muted-foreground">
+            Once connected, your installs will appear here and count toward
+            community usage stats.
           </p>
         </div>
       </div>
