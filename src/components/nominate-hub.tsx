@@ -8,19 +8,26 @@ export function NominateHub() {
   const [description, setDescription] = useState("");
   const [reason, setReason] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSending(true);
+    setErrorMsg("");
 
-    const subject = encodeURIComponent(`Hub Nomination: ${name}`);
-    const body = encodeURIComponent(
-      `Hub Name: ${name}\n\nDescription: ${description}\n\nWhy this hub should exist:\n${reason}`
-    );
+    const res = await fetch("/api/nominate-hub", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description, reason }),
+    });
 
-    window.open(
-      `mailto:plbrwn1983@gmail.com?subject=${subject}&body=${body}`,
-      "_blank"
-    );
+    setSending(false);
+
+    if (!res.ok) {
+      setErrorMsg("Failed to send nomination. Please try again.");
+      return;
+    }
 
     setSubmitted(true);
     setTimeout(() => {
@@ -61,8 +68,7 @@ export function NominateHub() {
             {submitted ? (
               <div className="mt-6 text-center">
                 <p className="text-sm text-green-400">
-                  Your email client should open with the nomination details.
-                  Send it to complete your nomination!
+                  Nomination submitted! We&apos;ll review your suggestion.
                 </p>
               </div>
             ) : (
@@ -109,11 +115,16 @@ export function NominateHub() {
                   />
                 </div>
 
+                {errorMsg && (
+                  <p className="text-xs text-red-400">{errorMsg}</p>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+                  disabled={sending}
+                  className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors disabled:opacity-50"
                 >
-                  Submit Nomination
+                  {sending ? "Sending..." : "Submit Nomination"}
                 </button>
               </form>
             )}
