@@ -1,6 +1,6 @@
-cli/
-scripts/
-contributions/
-docs/
-supabase/
-.github/
+/cli/
+/scripts/
+/contributions/
+/docs/
+/supabase/
+/.github/
