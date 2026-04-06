@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     );
     const baseSha = baseBranch.object.sha;
 
-    // 3. Create a new branch
+    // 3. Create a new branch (or update if it already exists)
     const branchName = `contrib/${type}/${dirName}`;
     try {
       await githubFetch(
@@ -108,16 +108,21 @@ export async function POST(request: Request) {
           }),
         }
       );
-    } catch {
-      // Branch may already exist — update it
-      await githubFetch(
-        `/repos/${forkOwner}/${REPO_NAME}/git/refs/heads/${branchName}`,
-        providerToken,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ sha: baseSha, force: true }),
-        }
-      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      // Only fall through to PATCH if the branch already exists (422)
+      if (message.includes("422") || message.includes("already exists")) {
+        await githubFetch(
+          `/repos/${forkOwner}/${REPO_NAME}/git/refs/heads/${branchName}`,
+          providerToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify({ sha: baseSha, force: true }),
+          }
+        );
+      } else {
+        throw err;
+      }
     }
 
     // 4. Create files via Contents API
