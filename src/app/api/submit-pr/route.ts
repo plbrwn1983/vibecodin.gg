@@ -21,7 +21,9 @@ async function githubFetch(
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.message || `GitHub API error: ${res.status}`);
+    throw new Error(
+      `${options?.method ?? "GET"} ${path} → ${res.status} ${data.message || "(no message)"}`
+    );
   }
   return data;
 }
