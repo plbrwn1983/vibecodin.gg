@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getContributionById, getComments, getUserCommentVotes } from "@/lib/supabase/queries";
+import { getContributionById, getComments, getUserCommentVotes, getReviews, getUserReview } from "@/lib/supabase/queries";
 import { getAuthState } from "@/lib/supabase/auth";
 import { getHubBySlug, getSubdomainBySlug } from "@/lib/hubs";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,11 @@ import { UpvoteButton } from "@/components/upvote-button";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Discussion } from "@/components/discussion";
 import { InstallSection } from "@/components/install-section";
+import { PriceBadge } from "@/components/price-badge";
+import { TrustScoreBadge } from "@/components/trust-score-badge";
 import { createClient } from "@/lib/supabase/server";
+import { ReviewForm } from "@/components/review-form";
+import { ReviewList } from "@/components/review-list";
 
 export async function generateMetadata({
   params,
@@ -29,11 +33,13 @@ export default async function ContributionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [c, { isAuthenticated, userVotes }, comments, commentVotes] = await Promise.all([
+  const [c, { isAuthenticated, userVotes }, comments, commentVotes, reviews, userReview] = await Promise.all([
     getContributionById(id),
     getAuthState(),
     getComments(id),
     getUserCommentVotes(id),
+    getReviews(id),
+    getUserReview(id),
   ]);
   if (!c) notFound();
 
@@ -45,6 +51,19 @@ export default async function ContributionPage({
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     currentUserId = user?.id;
+  }
+
+  // Check purchase access for premium contributions
+  let hasPurchased = true;
+  if (c.pricing_model !== "free" && currentUserId) {
+    const supabase = await createClient();
+    const { data } = await supabase.rpc("check_purchase_access", {
+      p_user_id: currentUserId,
+      p_contribution_id: c.id,
+    });
+    hasPurchased = !!data;
+  } else if (c.pricing_model !== "free" && !currentUserId) {
+    hasPurchased = false;
   }
 
   return (
@@ -81,11 +100,20 @@ export default async function ContributionPage({
             <Badge variant="secondary" className="text-xs uppercase">
               {c.type}
             </Badge>
+            <PriceBadge
+              pricingModel={c.pricing_model}
+              priceOneTime={c.price_one_time}
+              priceSubscription={c.price_subscription}
+            />
             {c.verified && (
               <span className="text-sm text-blue-400" title="Verified">
                 &#10003; Verified
               </span>
             )}
+            <TrustScoreBadge
+              score={c.trust_score}
+              ratingCount={c.rating_count}
+            />
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{c.description}</p>
         </div>
@@ -209,7 +237,14 @@ export default async function ContributionPage({
       </div>
 
       {/* Install */}
-      <InstallSection contributionId={c.id} type={c.type} />
+      <InstallSection
+        contributionId={c.id}
+        type={c.type}
+        pricingModel={c.pricing_model}
+        priceOneTime={c.price_one_time}
+        priceSubscription={c.price_subscription}
+        hasPurchased={hasPurchased}
+      />
 
       {/* Readme body */}
       {c.raw_readme && (
@@ -217,6 +252,30 @@ export default async function ContributionPage({
           <MarkdownRenderer content={c.raw_readme} />
         </div>
       )}
+
+      {/* Reviews */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-foreground">Reviews</h2>
+        <div className="mt-4">
+          <ReviewList
+            reviews={reviews}
+            ratingAvg={c.rating_avg}
+            ratingCount={c.rating_count}
+            worksAsDescribedPct={c.works_as_described_pct}
+          />
+        </div>
+        {isAuthenticated && (hasPurchased || c.pricing_model === "free") && (
+          <div className="mt-6 rounded-lg border border-border bg-card p-4">
+            <h3 className="text-sm font-medium text-foreground mb-3">
+              {userReview ? "Update your review" : "Write a review"}
+            </h3>
+            <ReviewForm
+              contributionId={c.id}
+              existingReview={userReview}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Discussion */}
       <Discussion

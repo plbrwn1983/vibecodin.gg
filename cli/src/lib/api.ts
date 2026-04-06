@@ -37,6 +37,9 @@ export interface Contribution {
   verification_model: string | null;
   upvotes: number;
   usage_count: number;
+  pricing_model: "free" | "one_time" | "subscription" | "both";
+  price_one_time: number | null;
+  price_subscription: number | null;
 }
 
 export type SortKey = "upvotes" | "usage" | "recent" | "verified";
@@ -159,4 +162,23 @@ export async function recordInstall(
   if (error) {
     console.error(`Failed to record install: ${error.message}`);
   }
+}
+
+export async function checkPurchaseAccess(
+  contributionId: string
+): Promise<boolean> {
+  const auth = getAuth();
+  if (!auth) return false;
+
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("check_purchase_access", {
+    p_user_id: auth.user_id,
+    p_contribution_id: contributionId,
+  });
+
+  if (error) {
+    console.error(`Failed to check purchase access: ${error.message}`);
+    return false;
+  }
+  return !!data;
 }

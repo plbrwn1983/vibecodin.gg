@@ -19,6 +19,15 @@ export default async function SubmitPage() {
     user.user_metadata?.preferred_username ??
     "unknown";
 
+  // Check Stripe Connect status for premium submissions
+  const { data: profile } = await supabase
+    .from("users")
+    .select("stripe_onboarding_complete")
+    .eq("id", user.id)
+    .single();
+
+  const stripeOnboarded = profile?.stripe_onboarding_complete ?? false;
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <h1 className="text-2xl font-semibold tracking-tight">
@@ -29,7 +38,7 @@ export default async function SubmitPage() {
         will generate a GitHub pull request for review.
       </p>
 
-      <SubmitForm author={handle} />
+      <SubmitForm author={handle} stripeOnboarded={stripeOnboarded} />
     </div>
   );
 }

@@ -1,5 +1,15 @@
 import { Contribution } from "./types";
 
+const FREE_DEFAULTS = {
+  pricing_model: "free" as const,
+  price_one_time: null,
+  price_subscription: null,
+  rating_avg: 0,
+  rating_count: 0,
+  works_as_described_pct: null,
+  trust_score: null,
+};
+
 export const contributions: Contribution[] = [
   // ── Skills ──────────────────────────────────────────────────────────
   {
@@ -32,6 +42,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 142,
     usage_count: 891,
+    ...FREE_DEFAULTS,
   },
   {
     id: "lead-qualification-scorer",
@@ -63,6 +74,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 98,
     usage_count: 567,
+    ...FREE_DEFAULTS,
   },
   {
     id: "contract-clause-extractor",
@@ -94,6 +106,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 87,
     usage_count: 423,
+    ...FREE_DEFAULTS,
   },
   {
     id: "support-ticket-triage",
@@ -125,6 +138,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 76,
     usage_count: 534,
+    ...FREE_DEFAULTS,
   },
   {
     id: "invoice-data-extractor",
@@ -155,6 +169,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 64,
     usage_count: 312,
+    ...FREE_DEFAULTS,
   },
   {
     id: "user-story-generator",
@@ -186,6 +201,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 113,
     usage_count: 678,
+    ...FREE_DEFAULTS,
   },
   {
     id: "incident-report-generator",
@@ -217,6 +233,7 @@ export const contributions: Contribution[] = [
     verification_model: null,
     upvotes: 45,
     usage_count: 198,
+    ...FREE_DEFAULTS,
   },
   {
     id: "kpi-dashboard-narrator",
@@ -248,6 +265,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 91,
     usage_count: 445,
+    ...FREE_DEFAULTS,
   },
   {
     id: "meeting-notes-summarizer",
@@ -279,6 +297,7 @@ export const contributions: Contribution[] = [
     verification_model: null,
     upvotes: 53,
     usage_count: 287,
+    ...FREE_DEFAULTS,
   },
   {
     id: "shipment-exception-summarizer",
@@ -310,6 +329,7 @@ export const contributions: Contribution[] = [
     verification_model: null,
     upvotes: 31,
     usage_count: 145,
+    ...FREE_DEFAULTS,
   },
   {
     id: "job-description-writer",
@@ -341,6 +361,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 72,
     usage_count: 389,
+    ...FREE_DEFAULTS,
   },
   {
     id: "rfp-requirements-parser",
@@ -372,6 +393,7 @@ export const contributions: Contribution[] = [
     verification_model: null,
     upvotes: 28,
     usage_count: 102,
+    ...FREE_DEFAULTS,
   },
 
   // ── Agents ──────────────────────────────────────────────────────────
@@ -409,6 +431,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 105,
     usage_count: 612,
+    ...FREE_DEFAULTS,
   },
   {
     id: "interview-prep-agent",
@@ -444,6 +467,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 89,
     usage_count: 456,
+    ...FREE_DEFAULTS,
   },
   {
     id: "outreach-sequence-agent",
@@ -479,6 +503,7 @@ export const contributions: Contribution[] = [
     verification_model: null,
     upvotes: 67,
     usage_count: 334,
+    ...FREE_DEFAULTS,
   },
   {
     id: "support-escalation-agent",
@@ -514,6 +539,7 @@ export const contributions: Contribution[] = [
     verification_model: "claude-sonnet-4-6",
     upvotes: 58,
     usage_count: 267,
+    ...FREE_DEFAULTS,
   },
 ];
 

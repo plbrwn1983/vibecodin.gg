@@ -18,6 +18,9 @@ export interface ParsedContribution {
   agent_fields: Record<string, unknown> | null;
   raw_readme: string;
   files: { relativePath: string; absolutePath: string }[];
+  pricing_model: "free" | "one_time" | "subscription" | "both";
+  price_one_time: number | null;
+  price_subscription: number | null;
 }
 
 export interface ValidationError {
@@ -192,6 +195,9 @@ export function parseContributionDir(
       agent_fields,
       raw_readme: content.trim(),
       files,
+      pricing_model: (data.pricing_model as ParsedContribution["pricing_model"]) || "free",
+      price_one_time: (data.price_one_time as number) || null,
+      price_subscription: (data.price_subscription as number) || null,
     },
     errors,
   };

@@ -48,6 +48,13 @@ export interface Contribution {
   upvotes: number;
   usage_count: number;
   thread_locked?: boolean;
+  pricing_model: "free" | "one_time" | "subscription" | "both";
+  price_one_time: number | null;
+  price_subscription: number | null;
+  rating_avg: number;
+  rating_count: number;
+  works_as_described_pct: number | null;
+  trust_score: number | null;
 }
 
 export interface Subdomain {

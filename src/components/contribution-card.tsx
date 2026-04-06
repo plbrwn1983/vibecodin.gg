@@ -3,6 +3,8 @@ import { Contribution } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { TagList } from "./tag-list";
 import { UpvoteButton } from "./upvote-button";
+import { PriceBadge } from "./price-badge";
+import { TrustScoreBadge } from "./trust-score-badge";
 
 export function ContributionCard({
   contribution,
@@ -32,11 +34,20 @@ export function ContributionCard({
             >
               {c.type}
             </Badge>
+            <PriceBadge
+              pricingModel={c.pricing_model}
+              priceOneTime={c.price_one_time}
+              priceSubscription={c.price_subscription}
+            />
             {c.verified && (
               <span className="shrink-0 text-xs text-blue-400" title="Verified">
                 &#10003;
               </span>
             )}
+            <TrustScoreBadge
+              score={c.trust_score}
+              ratingCount={c.rating_count}
+            />
           </div>
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
             {c.description}

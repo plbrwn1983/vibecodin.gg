@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StripeConnectGate } from "./stripe-connect-gate";
 
 type ContributionType = "skill" | "agent";
 
@@ -96,6 +97,15 @@ function buildReadme(fields: Record<string, unknown>, body: string): string {
     addObj("dependencies", fields.agentDependencies as Record<string, unknown>);
   }
 
+  // Pricing fields (only for premium)
+  if (fields.pricing_model && fields.pricing_model !== "free") {
+    lines.push("");
+    add("pricing_model", fields.pricing_model);
+    if (fields.price_one_time) add("price_one_time", fields.price_one_time);
+    if (fields.price_subscription)
+      add("price_subscription", fields.price_subscription);
+  }
+
   lines.push("---");
   lines.push("");
   lines.push(body);
@@ -103,9 +113,20 @@ function buildReadme(fields: Record<string, unknown>, body: string): string {
   return lines.join("\n");
 }
 
-export function SubmitForm({ author }: { author: string }) {
+type PricingModel = "free" | "one_time" | "subscription" | "both";
+
+export function SubmitForm({
+  author,
+  stripeOnboarded = false,
+}: {
+  author: string;
+  stripeOnboarded?: boolean;
+}) {
   const today = new Date().toISOString().split("T")[0];
   const [type, setType] = useState<ContributionType>("skill");
+  const [pricingModel, setPricingModel] = useState<PricingModel>("free");
+  const [priceOneTime, setPriceOneTime] = useState("");
+  const [priceSubscription, setPriceSubscription] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [version] = useState("1.0.0");
@@ -209,6 +230,25 @@ export function SubmitForm({ author }: { author: string }) {
         skills: splitList(agentDepSkills),
         mcps: splitList(agentDepMcps),
       };
+    }
+
+    // Pricing
+    if (pricingModel !== "free") {
+      fields.pricing_model = pricingModel;
+      if (
+        (pricingModel === "one_time" || pricingModel === "both") &&
+        priceOneTime
+      ) {
+        fields.price_one_time = Math.round(parseFloat(priceOneTime) * 100);
+      }
+      if (
+        (pricingModel === "subscription" || pricingModel === "both") &&
+        priceSubscription
+      ) {
+        fields.price_subscription = Math.round(
+          parseFloat(priceSubscription) * 100
+        );
+      }
     }
 
     const readme = buildReadme(fields, body);
@@ -401,6 +441,83 @@ export function SubmitForm({ author }: { author: string }) {
           ))}
         </div>
       </div>
+
+      {/* Pricing model */}
+      <div>
+        <label className={labelClass}>Pricing</label>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { value: "free", label: "Free & Open Source" },
+              { value: "one_time", label: "One-time Purchase" },
+              { value: "subscription", label: "Subscription" },
+              { value: "both", label: "Both" },
+            ] as const
+          ).map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => setPricingModel(p.value)}
+              className={`rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+                pricingModel === p.value
+                  ? "bg-blue-600 text-white"
+                  : "border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {pricingModel !== "free" && (
+        <StripeConnectGate onboarded={stripeOnboarded}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(pricingModel === "one_time" || pricingModel === "both") && (
+              <div>
+                <label className={labelClass}>One-time Price (USD)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    className={`${inputClass} pl-7`}
+                    value={priceOneTime}
+                    onChange={(e) => setPriceOneTime(e.target.value)}
+                    placeholder="9.99"
+                    required
+                  />
+                </div>
+                <p className={helpClass}>Minimum $1.00</p>
+              </div>
+            )}
+            {(pricingModel === "subscription" || pricingModel === "both") && (
+              <div>
+                <label className={labelClass}>Monthly Price (USD)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    className={`${inputClass} pl-7`}
+                    value={priceSubscription}
+                    onChange={(e) => setPriceSubscription(e.target.value)}
+                    placeholder="4.99"
+                    required
+                  />
+                </div>
+                <p className={helpClass}>Minimum $1.00/month</p>
+              </div>
+            )}
+          </div>
+        </StripeConnectGate>
+      )}
 
       {/* Base fields */}
       <div className="grid gap-4 sm:grid-cols-2">

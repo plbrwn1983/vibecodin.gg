@@ -58,6 +58,9 @@ function buildRow(c: ParsedContribution, hubLabels: { domain?: string; subdomain
     skill_fields: c.skill_fields,
     agent_fields: c.agent_fields,
     raw_readme: c.raw_readme,
+    pricing_model: c.pricing_model,
+    price_one_time: c.price_one_time,
+    price_subscription: c.price_subscription,
     ...(hubLabels.domain ? { domain: hubLabels.domain } : {}),
     ...(hubLabels.subdomain ? { subdomain: hubLabels.subdomain } : {}),
   };
@@ -192,6 +195,75 @@ async function sync() {
       await removeStorageFiles(id, "skill");
       await removeStorageFiles(id, "agent");
       console.log(`  Removed storage files for ${id}`);
+    }
+  }
+
+  // Stage 4: Create Stripe products for premium contributions (optional)
+  if (process.env.STRIPE_SECRET_KEY) {
+    const Stripe = (await import("stripe")).default;
+    const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+    console.log("\n=== Stage 4: Stripe Products ===");
+    for (const c of contributions) {
+      if (c.pricing_model === "free") continue;
+
+      // Check if already has Stripe product
+      const { data: existing } = await supabase
+        .from("contributions")
+        .select("stripe_product_id")
+        .eq("id", c.id)
+        .single();
+
+      if (existing?.stripe_product_id) {
+        console.log(`  Skipped ${c.id} (already has Stripe product)`);
+        continue;
+      }
+
+      try {
+        const product = await stripeClient.products.create({
+          name: c.name,
+          description: c.description,
+          metadata: { contribution_id: c.id },
+        });
+
+        const updates: Record<string, unknown> = {
+          stripe_product_id: product.id,
+        };
+
+        if (
+          (c.pricing_model === "one_time" || c.pricing_model === "both") &&
+          c.price_one_time
+        ) {
+          const price = await stripeClient.prices.create({
+            product: product.id,
+            unit_amount: c.price_one_time,
+            currency: "usd",
+          });
+          updates.stripe_price_one_time_id = price.id;
+        }
+
+        if (
+          (c.pricing_model === "subscription" || c.pricing_model === "both") &&
+          c.price_subscription
+        ) {
+          const price = await stripeClient.prices.create({
+            product: product.id,
+            unit_amount: c.price_subscription,
+            currency: "usd",
+            recurring: { interval: "month" },
+          });
+          updates.stripe_price_subscription_id = price.id;
+        }
+
+        await supabase
+          .from("contributions")
+          .update(updates)
+          .eq("id", c.id);
+
+        console.log(`  Created Stripe product for ${c.id}`);
+      } catch (err) {
+        console.error(`  Failed to create Stripe product for ${c.id}:`, err);
+      }
     }
   }
 

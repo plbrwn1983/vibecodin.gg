@@ -5,6 +5,7 @@ import {
   getContributionFiles,
   downloadFile,
   recordInstall,
+  checkPurchaseAccess,
 } from "../lib/api.js";
 import {
   getAuth,
@@ -27,6 +28,34 @@ export async function install(idArg: string) {
   if (!c) {
     error(`Contribution "${id}" not found.`);
     process.exit(1);
+  }
+
+  // Check purchase access for premium contributions
+  if (c.pricing_model !== "free") {
+    if (!auth) {
+      error("This is a premium contribution. Please log in first:");
+      info('  vibecodin auth');
+      info(`\nThen purchase at: https://vibecodin.gg/c/${id}`);
+      process.exit(1);
+    }
+
+    info("Checking purchase access...");
+    const hasAccess = await checkPurchaseAccess(id);
+    if (!hasAccess) {
+      const formatPrice = (cents: number) =>
+        `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+
+      error(`This is a premium ${c.type}. Purchase required to install.`);
+      if (c.price_one_time) {
+        info(`  One-time: ${formatPrice(c.price_one_time)}`);
+      }
+      if (c.price_subscription) {
+        info(`  Subscription: ${formatPrice(c.price_subscription)}/mo`);
+      }
+      info(`\nPurchase at: https://vibecodin.gg/c/${id}`);
+      process.exit(1);
+    }
+    success("Purchase verified.");
   }
 
   // Check manifest for conflicts

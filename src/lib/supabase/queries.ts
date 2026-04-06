@@ -293,6 +293,171 @@ export async function getUserInstalls(): Promise<
   return (data as unknown as Awaited<ReturnType<typeof getUserInstalls>>) ?? [];
 }
 
+export async function getUserPurchases(): Promise<
+  {
+    id: string;
+    contribution_id: string;
+    amount_cents: number;
+    status: string;
+    purchased_at: string;
+    refund_eligible_until: string | null;
+    contributions: {
+      id: string;
+      name: string;
+      type: "skill" | "agent";
+      description: string;
+    };
+  }[]
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("purchases")
+    .select(
+      "id, contribution_id, amount_cents, status, purchased_at, refund_eligible_until, contributions(id, name, type, description)"
+    )
+    .eq("user_id", user.id)
+    .eq("status", "completed")
+    .order("purchased_at", { ascending: false });
+
+  if (error) {
+    console.error("getUserPurchases error:", error.message);
+    return [];
+  }
+  return (data as unknown as Awaited<ReturnType<typeof getUserPurchases>>) ?? [];
+}
+
+export async function getUserActiveSubscriptionsPaid(): Promise<
+  {
+    id: string;
+    contribution_id: string;
+    amount_cents: number;
+    status: string;
+    current_period_end: string;
+    started_at: string;
+    contributions: {
+      id: string;
+      name: string;
+      type: "skill" | "agent";
+      description: string;
+    };
+  }[]
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("active_subscriptions")
+    .select(
+      "id, contribution_id, amount_cents, status, current_period_end, started_at, contributions(id, name, type, description)"
+    )
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .order("started_at", { ascending: false });
+
+  if (error) {
+    console.error("getUserActiveSubscriptionsPaid error:", error.message);
+    return [];
+  }
+  return (data as unknown as Awaited<ReturnType<typeof getUserActiveSubscriptionsPaid>>) ?? [];
+}
+
+export async function getContributorEarnings(userId: string): Promise<{
+  totalCents: number;
+  thisMonthCents: number;
+}> {
+  const supabase = await createClient();
+
+  const { data: allTime } = await supabase
+    .from("payout_ledger")
+    .select("contributor_payout_cents")
+    .eq("contributor_user_id", userId);
+
+  const totalCents = allTime?.reduce((sum, r) => sum + r.contributor_payout_cents, 0) ?? 0;
+
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { data: monthly } = await supabase
+    .from("payout_ledger")
+    .select("contributor_payout_cents")
+    .eq("contributor_user_id", userId)
+    .gte("created_at", startOfMonth.toISOString());
+
+  const thisMonthCents = monthly?.reduce((sum, r) => sum + r.contributor_payout_cents, 0) ?? 0;
+
+  return { totalCents, thisMonthCents };
+}
+
+export interface ReviewWithUser {
+  id: string;
+  user_id: string;
+  contribution_id: string;
+  rating: number;
+  works_as_described: boolean;
+  model_tested: string | null;
+  body: string | null;
+  created_at: string;
+  updated_at: string;
+  users: {
+    github_handle: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+export async function getReviews(
+  contributionId: string
+): Promise<ReviewWithUser[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .select(
+      "id, user_id, contribution_id, rating, works_as_described, model_tested, body, created_at, updated_at, users!reviews_user_id_fkey(github_handle, display_name, avatar_url)"
+    )
+    .eq("contribution_id", contributionId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("getReviews error:", error.message);
+    return [];
+  }
+  return (data as unknown as ReviewWithUser[]) ?? [];
+}
+
+export async function getUserReview(
+  contributionId: string
+): Promise<ReviewWithUser | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("reviews")
+    .select(
+      "id, user_id, contribution_id, rating, works_as_described, model_tested, body, created_at, updated_at, users!reviews_user_id_fkey(github_handle, display_name, avatar_url)"
+    )
+    .eq("contribution_id", contributionId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) return null;
+  return data as unknown as ReviewWithUser;
+}
+
 export async function getUserSubscriptions(): Promise<
   { scope_type: string; scope_value: string; created_at: string }[]
 > {

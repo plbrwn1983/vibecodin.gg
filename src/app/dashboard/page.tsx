@@ -1,9 +1,17 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getUserSubscriptions, getUserInstalls } from "@/lib/supabase/queries";
+import {
+  getUserSubscriptions,
+  getUserInstalls,
+  getUserPurchases,
+  getUserActiveSubscriptionsPaid,
+  getContributorEarnings,
+} from "@/lib/supabase/queries";
 import { getHubBySlug } from "@/lib/hubs";
 import { CopyCommand } from "@/components/copy-command";
+import { RefundButton } from "@/components/refund-button";
+import { CancelSubscriptionButton } from "@/components/cancel-subscription-button";
 
 export const metadata = { title: "Dashboard — vibecodin.gg" };
 
@@ -22,12 +30,32 @@ export default async function DashboardPage() {
     user.user_metadata?.preferred_username ??
     user.email;
 
-  const [subscriptions, installs] = await Promise.all([
-    getUserSubscriptions(),
-    getUserInstalls(),
-  ]);
+  // Check if user is a contributor with Stripe Connect
+  const { data: userData } = await supabase
+    .from("users")
+    .select("stripe_account_id, stripe_onboarding_complete")
+    .eq("id", user.id)
+    .single();
+
+  const isContributor = !!userData?.stripe_onboarding_complete;
+
+  const [subscriptions, installs, purchases, paidSubs, earnings] =
+    await Promise.all([
+      getUserSubscriptions(),
+      getUserInstalls(),
+      getUserPurchases(),
+      getUserActiveSubscriptionsPaid(),
+      isContributor
+        ? getContributorEarnings(user.id)
+        : Promise.resolve({ totalCents: 0, thisMonthCents: 0 }),
+    ]);
   const hasSubscriptions = subscriptions.length > 0;
   const hasInstalls = installs.length > 0;
+  const hasPurchases = purchases.length > 0;
+  const hasPaidSubs = paidSubs.length > 0;
+
+  const formatPrice = (cents: number) =>
+    `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
@@ -151,6 +179,116 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Purchases & Paid Subscriptions */}
+      {(hasPurchases || hasPaidSubs) && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {/* One-time purchases */}
+          {hasPurchases && (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h3 className="text-sm font-medium text-foreground">
+                My Purchases
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Premium skills & agents you&apos;ve purchased.
+              </p>
+              <ul className="mt-4 space-y-2">
+                {purchases.map((p) => {
+                  const canRefund =
+                    p.refund_eligible_until &&
+                    new Date(p.refund_eligible_until) > new Date();
+                  return (
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs"
+                    >
+                      <Link
+                        href={`/c/${p.contribution_id}`}
+                        className="font-medium text-foreground hover:underline"
+                      >
+                        {p.contributions.name}
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">
+                          {formatPrice(p.amount_cents)}
+                        </span>
+                        {canRefund && (
+                          <RefundButton purchaseId={p.id} />
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {/* Active paid subscriptions */}
+          {hasPaidSubs && (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h3 className="text-sm font-medium text-foreground">
+                Active Subscriptions
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Premium content you&apos;re subscribed to.
+              </p>
+              <ul className="mt-4 space-y-2">
+                {paidSubs.map((s) => (
+                  <li
+                    key={s.id}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs"
+                  >
+                    <Link
+                      href={`/c/${s.contribution_id}`}
+                      className="font-medium text-foreground hover:underline"
+                    >
+                      {s.contributions.name}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">
+                        {formatPrice(s.amount_cents)}/mo
+                      </span>
+                      <CancelSubscriptionButton subscriptionId={s.id} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Contributor Earnings */}
+      {isContributor && (
+        <div className="mt-4">
+          <div className="rounded-lg border border-border bg-card p-6">
+            <h3 className="text-sm font-medium text-foreground">Earnings</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Revenue from your premium contributions (after 20% platform fee).
+            </p>
+            <div className="mt-4 flex gap-8">
+              <div>
+                <p className="text-2xl font-semibold text-foreground">
+                  {formatPrice(earnings.totalCents)}
+                </p>
+                <p className="text-xs text-muted-foreground">All time</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-foreground">
+                  {formatPrice(earnings.thisMonthCents)}
+                </p>
+                <p className="text-xs text-muted-foreground">This month</p>
+              </div>
+            </div>
+            <a
+              href="/api/stripe/dashboard"
+              className="mt-4 inline-block rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500 transition-colors"
+            >
+              View Stripe Dashboard
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

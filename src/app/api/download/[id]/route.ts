@@ -109,6 +109,32 @@ export async function GET(
     );
   }
 
+  // Check purchase access for premium contributions
+  if (contribution.pricing_model !== "free") {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required to download premium content" },
+        { status: 401 }
+      );
+    }
+
+    const { data: hasAccess } = await supabase.rpc("check_purchase_access", {
+      p_user_id: user.id,
+      p_contribution_id: id,
+    });
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Purchase required to download this content" },
+        { status: 402 }
+      );
+    }
+  }
+
   const storagePath = `contributions/${contribution.type}s/${id}`;
 
   // Try Storage first
