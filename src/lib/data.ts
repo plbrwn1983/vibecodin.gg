@@ -8,6 +8,10 @@ const FREE_DEFAULTS = {
   rating_count: 0,
   works_as_described_pct: null,
   trust_score: null,
+  auto_flagged: false,
+  auto_delisted: false,
+  hidden: false,
+  stale: false,
 };
 
 export const contributions: Contribution[] = [

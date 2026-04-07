@@ -47,10 +47,19 @@ export default async function ContributionPage({
   const sd = c.subdomain ? getSubdomainBySlug(c.domain, c.subdomain) : null;
 
   let currentUserId: string | undefined;
+  let isAuthor = false;
   if (isAuthenticated) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     currentUserId = user?.id;
+    if (currentUserId) {
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("github_handle")
+        .eq("id", currentUserId)
+        .single();
+      isAuthor = userRow?.github_handle === c.author;
+    }
   }
 
   // Check purchase access for premium contributions
@@ -141,6 +150,38 @@ export default async function ContributionPage({
       <div className="mt-3">
         <TagList tags={c.tags} />
       </div>
+
+      {/* Trust warnings */}
+      {(c.hidden || c.auto_delisted) && isAuthor && (
+        <div className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
+          <div className="font-medium text-red-200">
+            This contribution is hidden from the marketplace.
+          </div>
+          <div className="mt-1">
+            Works-as-described rate fell below 40%
+            {c.works_as_described_pct !== null
+              ? ` (currently ${c.works_as_described_pct.toFixed(0)}%)`
+              : ""}
+            . Only you can see this page. Push an update to your repo to
+            address reviewer feedback — the delist will lift once the rate
+            recovers.
+          </div>
+        </div>
+      )}
+      {c.auto_flagged && !c.hidden && !c.auto_delisted && (
+        <div className="mt-4 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3 text-xs text-yellow-300">
+          <div className="font-medium text-yellow-200">
+            Low community confidence
+          </div>
+          <div className="mt-1">
+            Fewer than 60% of reviewers said this works as described
+            {c.works_as_described_pct !== null
+              ? ` (currently ${c.works_as_described_pct.toFixed(0)}%)`
+              : ""}
+            . Read the reviews below before installing.
+          </div>
+        </div>
+      )}
 
       {/* Metadata */}
       <div className="mt-6 rounded-lg border border-border bg-card p-4">

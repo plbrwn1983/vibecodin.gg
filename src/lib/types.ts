@@ -55,6 +55,10 @@ export interface Contribution {
   rating_count: number;
   works_as_described_pct: number | null;
   trust_score: number | null;
+  auto_flagged: boolean;
+  auto_delisted: boolean;
+  hidden: boolean;
+  stale: boolean;
 }
 
 export interface Subdomain {
