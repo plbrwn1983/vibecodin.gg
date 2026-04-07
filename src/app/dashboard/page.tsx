@@ -7,6 +7,7 @@ import {
   getUserPurchases,
   getUserActiveSubscriptionsPaid,
   getContributorEarnings,
+  getMyHiddenContributions,
 } from "@/lib/supabase/queries";
 import { getHubBySlug } from "@/lib/hubs";
 import { CopyCommand } from "@/components/copy-command";
@@ -39,7 +40,7 @@ export default async function DashboardPage() {
 
   const isContributor = !!userData?.stripe_onboarding_complete;
 
-  const [subscriptions, installs, purchases, paidSubs, earnings] =
+  const [subscriptions, installs, purchases, paidSubs, earnings, hiddenContributions] =
     await Promise.all([
       getUserSubscriptions(),
       getUserInstalls(),
@@ -48,6 +49,7 @@ export default async function DashboardPage() {
       isContributor
         ? getContributorEarnings(user.id)
         : Promise.resolve({ totalCents: 0, thisMonthCents: 0 }),
+      getMyHiddenContributions(),
     ]);
   const hasSubscriptions = subscriptions.length > 0;
   const hasInstalls = installs.length > 0;
@@ -74,6 +76,43 @@ export default async function DashboardPage() {
           <p className="text-sm text-muted-foreground">@{handle}</p>
         </div>
       </div>
+
+      {hiddenContributions.length > 0 && (
+        <div className="mt-8 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+          <h3 className="text-sm font-medium text-red-200">
+            {hiddenContributions.length === 1
+              ? "1 contribution is hidden from the marketplace"
+              : `${hiddenContributions.length} contributions are hidden from the marketplace`}
+          </h3>
+          <p className="mt-1 text-xs text-red-300/80">
+            These were auto-delisted because fewer than 40% of reviewers said
+            they work as described. Only you can see them. Push an update to
+            address feedback — they&apos;ll relist when the rate recovers.
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            {hiddenContributions.map((h) => (
+              <li key={h.id}>
+                <Link
+                  href={`/c/${h.id}`}
+                  className="flex items-center justify-between rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs hover:bg-red-500/10 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase text-red-300">
+                      {h.type}
+                    </span>
+                    <span className="font-medium text-red-100">{h.name}</span>
+                  </div>
+                  <span className="text-red-300/70">
+                    {h.works_as_described_pct !== null
+                      ? `${h.works_as_described_pct.toFixed(0)}% works as described`
+                      : "no rating"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-card p-6">

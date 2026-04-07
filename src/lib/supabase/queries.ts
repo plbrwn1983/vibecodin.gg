@@ -458,6 +458,42 @@ export async function getUserReview(
   return data as unknown as ReviewWithUser;
 }
 
+export async function getMyHiddenContributions(): Promise<
+  {
+    id: string;
+    name: string;
+    type: "skill" | "agent";
+    works_as_described_pct: number | null;
+    auto_delisted: boolean;
+    hidden: boolean;
+  }[]
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: userRow } = await supabase
+    .from("users")
+    .select("github_handle")
+    .eq("id", user.id)
+    .single();
+  if (!userRow?.github_handle) return [];
+
+  const { data, error } = await supabase
+    .from("contributions")
+    .select("id, name, type, works_as_described_pct, auto_delisted, hidden")
+    .eq("author", userRow.github_handle)
+    .or("hidden.eq.true,auto_delisted.eq.true");
+
+  if (error) {
+    console.error("getMyHiddenContributions error:", error.message);
+    return [];
+  }
+  return (data ?? []) as Awaited<ReturnType<typeof getMyHiddenContributions>>;
+}
+
 export async function getUserSubscriptions(): Promise<
   { scope_type: string; scope_value: string; created_at: string }[]
 > {

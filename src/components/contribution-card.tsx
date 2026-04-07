@@ -48,6 +48,22 @@ export function ContributionCard({
               score={c.trust_score}
               ratingCount={c.rating_count}
             />
+            {(c.hidden || c.auto_delisted) && (
+              <span
+                className="shrink-0 rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase text-red-300"
+                title="Hidden from the marketplace — only you can see this"
+              >
+                Hidden
+              </span>
+            )}
+            {c.auto_flagged && !c.hidden && !c.auto_delisted && (
+              <span
+                className="shrink-0 rounded bg-yellow-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase text-yellow-300"
+                title="Low community confidence"
+              >
+                Flagged
+              </span>
+            )}
           </div>
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
             {c.description}
