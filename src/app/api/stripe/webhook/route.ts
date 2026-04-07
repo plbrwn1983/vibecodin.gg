@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getStripe } from "@/lib/stripe";
 
-// Use service role client for webhook (no user session)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy-init service role client so module import doesn't crash builds
+// when env vars are absent (e.g. fork PR previews).
+let _supabase: SupabaseClient | null = null;
+function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabase;
+}
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -45,7 +52,7 @@ export async function POST(request: Request) {
         const amountCents = obj.amount_total ?? 0;
         const platformFee = Math.round(amountCents * 0.2);
 
-        await supabase.from("purchases").upsert(
+        await getSupabase().from("purchases").upsert(
           {
             user_id: userId,
             contribution_id: contributionId,
@@ -64,7 +71,7 @@ export async function POST(request: Request) {
           { onConflict: "user_id,contribution_id" }
         );
 
-        await supabase.from("payout_ledger").insert({
+        await getSupabase().from("payout_ledger").insert({
           contributor_user_id: await getContributorUserId(contributionId),
           contribution_id: contributionId,
           gross_cents: amountCents,
@@ -82,7 +89,7 @@ export async function POST(request: Request) {
           const sub = (await getStripe().subscriptions.retrieve(subscriptionId)) as any;
           const amountCents = sub.items?.data?.[0]?.price?.unit_amount ?? 0;
 
-          await supabase.from("active_subscriptions").upsert(
+          await getSupabase().from("active_subscriptions").upsert(
             {
               user_id: userId,
               contribution_id: contributionId,
@@ -111,14 +118,14 @@ export async function POST(request: Request) {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sub = (await getStripe().subscriptions.retrieve(subscriptionId)) as any;
-      const { data: activeSub } = await supabase
+      const { data: activeSub } = await getSupabase()
         .from("active_subscriptions")
         .select("id, contribution_id")
         .eq("stripe_subscription_id", subscriptionId)
         .single();
 
       if (activeSub) {
-        await supabase
+        await getSupabase()
           .from("active_subscriptions")
           .update({
             current_period_end: new Date(
@@ -135,7 +142,7 @@ export async function POST(request: Request) {
             activeSub.contribution_id
           );
 
-          await supabase.from("payout_ledger").insert({
+          await getSupabase().from("payout_ledger").insert({
             contributor_user_id: contributorId,
             contribution_id: activeSub.contribution_id,
             subscription_id: activeSub.id,
@@ -149,7 +156,7 @@ export async function POST(request: Request) {
     }
 
     case "customer.subscription.updated": {
-      await supabase
+      await getSupabase()
         .from("active_subscriptions")
         .update({
           status: obj.status === "active" ? "active" : "past_due",
@@ -162,7 +169,7 @@ export async function POST(request: Request) {
     }
 
     case "customer.subscription.deleted": {
-      await supabase
+      await getSupabase()
         .from("active_subscriptions")
         .update({
           status: "canceled",
@@ -179,7 +186,7 @@ export async function POST(request: Request) {
           : obj.payment_intent?.id;
 
       if (paymentIntentId) {
-        await supabase
+        await getSupabase()
           .from("purchases")
           .update({
             status: "refunded",
@@ -197,7 +204,7 @@ export async function POST(request: Request) {
 async function getContributorUserId(
   contributionId: string
 ): Promise<string | null> {
-  const { data: contribution } = await supabase
+  const { data: contribution } = await getSupabase()
     .from("contributions")
     .select("author")
     .eq("id", contributionId)
@@ -205,7 +212,7 @@ async function getContributorUserId(
 
   if (!contribution) return null;
 
-  const { data: user } = await supabase
+  const { data: user } = await getSupabase()
     .from("users")
     .select("id")
     .eq("github_handle", contribution.author)
