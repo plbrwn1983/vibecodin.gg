@@ -108,40 +108,40 @@ body {
 .dark {
   /* Deep-space black background from reference image */
   --background: oklch(0.04 0 0);
-  --foreground: oklch(0.96 0.01 180);
-  --card: oklch(0.08 0.01 200);
-  --card-foreground: oklch(0.96 0.01 180);
-  --popover: oklch(0.08 0.01 200);
-  --popover-foreground: oklch(0.96 0.01 180);
-  /* Neon cyan/teal primary — matches RESCAN/ALL buttons and ~/.claude library node */
-  --primary: oklch(0.85 0.17 185);
-  --primary-foreground: oklch(0.08 0.02 200);
-  /* Neon purple secondary — matches agent triangles */
+  --foreground: oklch(0.97 0.02 70);
+  --card: oklch(0.09 0.02 60);
+  --card-foreground: oklch(0.97 0.02 70);
+  --popover: oklch(0.09 0.02 60);
+  --popover-foreground: oklch(0.97 0.02 70);
+  /* Neon orange primary — matches skill diamonds in reference */
+  --primary: oklch(0.78 0.17 60);
+  --primary-foreground: oklch(0.08 0.02 60);
+  /* Neon purple secondary — matches agent triangles in reference */
   --secondary: oklch(0.65 0.22 300);
   --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.14 0.01 200);
-  --muted-foreground: oklch(0.68 0.04 190);
-  /* Neon orange accent — matches skill diamonds */
-  --accent: oklch(0.78 0.17 60);
-  --accent-foreground: oklch(0.08 0.02 200);
+  --muted: oklch(0.15 0.02 60);
+  --muted-foreground: oklch(0.72 0.08 70);
+  /* Purple accent to complement orange primary */
+  --accent: oklch(0.65 0.22 300);
+  --accent-foreground: oklch(0.98 0 0);
   /* Neon pink/red for destructive — matches duplicate stars */
   --destructive: oklch(0.68 0.25 15);
-  --border: oklch(0.85 0.17 185 / 18%);
-  --input: oklch(0.85 0.17 185 / 12%);
-  --ring: oklch(0.85 0.17 185 / 60%);
-  --chart-1: oklch(0.85 0.17 185);
-  --chart-2: oklch(0.78 0.17 60);
-  --chart-3: oklch(0.65 0.22 300);
+  --border: oklch(0.78 0.17 60 / 20%);
+  --input: oklch(0.78 0.17 60 / 14%);
+  --ring: oklch(0.78 0.17 60 / 60%);
+  --chart-1: oklch(0.78 0.17 60);
+  --chart-2: oklch(0.65 0.22 300);
+  --chart-3: oklch(0.85 0.17 185);
   --chart-4: oklch(0.68 0.25 15);
   --chart-5: oklch(0.75 0.19 140);
-  --sidebar: oklch(0.06 0.01 200);
-  --sidebar-foreground: oklch(0.96 0.01 180);
-  --sidebar-primary: oklch(0.85 0.17 185);
-  --sidebar-primary-foreground: oklch(0.08 0.02 200);
-  --sidebar-accent: oklch(0.14 0.01 200);
-  --sidebar-accent-foreground: oklch(0.85 0.17 185);
-  --sidebar-border: oklch(0.85 0.17 185 / 18%);
-  --sidebar-ring: oklch(0.85 0.17 185 / 60%);
+  --sidebar: oklch(0.07 0.02 60);
+  --sidebar-foreground: oklch(0.97 0.02 70);
+  --sidebar-primary: oklch(0.78 0.17 60);
+  --sidebar-primary-foreground: oklch(0.08 0.02 60);
+  --sidebar-accent: oklch(0.15 0.02 60);
+  --sidebar-accent-foreground: oklch(0.78 0.17 60);
+  --sidebar-border: oklch(0.78 0.17 60 / 20%);
+  --sidebar-ring: oklch(0.78 0.17 60 / 60%);
 }
 
 @layer base {
